@@ -57,6 +57,9 @@ typedef struct {
 
 #define LISTEN 0
 #define CONNECT 1
+#define SYN 2
+#define SYNACK 3
+#define ACK 4
 
 // API calls for developers using our version of TCP
 int ci_socket(int type, ci_conn_t *con, char *ip);
