@@ -87,7 +87,7 @@ void recv_data(ci_conn_t *con, int wait, int timeout) {
         strcpy(con->recv_buffer, pkt->data);
 
         // helps with debugging.
-        // print_packet(pkt);
+        print_packet(pkt);
 
         // handle the packet based on what we got
         // if it's an ACK, see if we should acknowledge it
@@ -99,8 +99,21 @@ void recv_data(ci_conn_t *con, int wait, int timeout) {
                 con->last_ack = pkt->hdr.ack;
             }
             pthread_mutex_unlock(&(con->ack_lock));
-        } else {
+        } 
+        else if(pkt->hdr.flags == SYN)
+        {
+            printf("SYN Recieved: Sending SYNACK\n");
+            ci_packet_t *synack1;
+            synack1 = make_packet(con, NULL, 0, con->last_ack, con->last_ack, 0, SYNACK);
+            //print_packet(synack1);
+            sendto(con->sfd, synack1, synack1->hdr.plen + C_PADDING, 0, (struct sockaddr *)&their_addr, addr_len);
+            printf("SYNACK Sent: Waiting for ACK\n");
+            //pthread_mutex_unlock(&(con->ack_lock));
+        }
+        else {
             // send an acknowledgement
+            if(pkt->hdr.flags == SYNACK)
+                printf("SYNACK RECIEVED: SENDING ACK\n");
             ci_packet_t *reply;
             reply = make_packet(con, "", HEADER_LEN, pkt->hdr.seq, pkt->hdr.seq + 1, 0, ACK);
             sendto(con->sfd, reply, reply->hdr.plen + C_PADDING, 0, (struct sockaddr *)&their_addr, addr_len);
@@ -140,12 +153,12 @@ void *main_loop(void *con_info) {
         case LISTEN: 
         printf("RECIEVING SYN\n"); //RECIEVE SYN
         recv_data(con, 1, 0); 
-        printf("SYN Recieved: Sending SYNACK\n");//SEND SYNACK
+        /*printf("SYN Recieved: Sending SYNACK\n");//SEND SYNACK
         //send_data(con, send_buffer, send_len); 
         pkt = make_packet(con, NULL, 0, con->last_ack, con->last_ack, 0, SYNACK);
         sendto(con->sfd, pkt, pkt->hdr.plen + C_PADDING, 0, con->serv_info.ai_addr, con->serv_info.ai_addrlen);
-        printf("SYNACK Sent: Waiting for ACK\n");
-        recv_data(con, 1, 0); //RECEIVE ACK
+        printf("SYNACK Sent: Waiting for ACK\n");*/
+        recv_data(con, 1, 0); //RECEIVE ACK 
         printf("ACK recived\n");
         break; 
 
@@ -157,7 +170,7 @@ void *main_loop(void *con_info) {
         sendto(con->sfd, pkt, pkt->hdr.plen + C_PADDING, 0, con->serv_info.ai_addr, con->serv_info.ai_addrlen);
         printf("SYN sent: Waiting for SYNACK\n"); //RECIENVE SYNACK
         recv_data(con, 1, 0); 
-        printf("SYNACK recieved: Sending ACK\n");//SEND ACK
+        //printf("SYNACK recieved: Sending ACK\n");//SEND ACK
         pkt = make_packet(con, NULL, 0, con->last_ack, con->last_ack, 0, ACK);
         sendto(con->sfd, pkt, pkt->hdr.plen + C_PADDING, 0, con->serv_info.ai_addr, con->serv_info.ai_addrlen);
         break;
