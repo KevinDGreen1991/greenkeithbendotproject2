@@ -118,7 +118,53 @@ void *main_loop(void *con_info) {
 
     char *send_buffer;
     int send_len;
+    ci_packet_t *pkt;
+    //        pkt = make_packet(con, data, len, con->last_ack, con->last_ack, 0, 0);
+    // ci_packet_t *make_packet(ci_conn_t *con, char *data, int len, uint32_t seq, uint32_t ack, uint16_t window, uint8_t flags)
+    //  sendto(con->sfd, pkt, pkt->hdr.plen + C_PADDING, 0, con->serv_info.ai_addr, con->serv_info.ai_addrlen);
+    
+    //3-WAY HANDSHAKE GOES HERE
 
+    /*ci_packet_t *pkt = malloc(sizeof(ci_packet_t));
+        int read = 0;
+    while(read < buff_len) {
+            read = recvfrom(con->sfd, pkt + read, buff_len - read, 0, (struct sockaddr *)&their_addr, &addr_len);
+            read += buff_len;
+        }
+        con->recv_buffer_len = read;
+        con->recv_buffer = malloc(read - HEADER_LEN - C_PADDING);
+        strcpy(con->recv_buffer, pkt->data);*/
+    switch(con->serverClient)
+    {
+        //SERVER
+        case LISTEN: 
+        printf("RECIEVING SYN\n"); //RECIEVE SYN
+        recv_data(con, 1, 0); 
+        printf("SYN Recieved: Sending SYNACK\n");//SEND SYNACK
+        //send_data(con, send_buffer, send_len); 
+        pkt = make_packet(con, NULL, 0, con->last_ack, con->last_ack, 0, SYNACK);
+        sendto(con->sfd, pkt, pkt->hdr.plen + C_PADDING, 0, con->serv_info.ai_addr, con->serv_info.ai_addrlen);
+        printf("SYNACK Sent: Waiting for ACK\n");
+        recv_data(con, 1, 0); //RECEIVE ACK
+        printf("ACK recived\n");
+        break; 
+
+
+        //CLIENT
+        case CONNECT:
+        printf("SENDING SYN\n");//SEND SYN
+        pkt = make_packet(con, NULL, 0, con->last_ack, con->last_ack, 0, SYN);
+        sendto(con->sfd, pkt, pkt->hdr.plen + C_PADDING, 0, con->serv_info.ai_addr, con->serv_info.ai_addrlen);
+        printf("SYN sent: Waiting for SYNACK\n"); //RECIENVE SYNACK
+        recv_data(con, 1, 0); 
+        printf("SYNACK recieved: Sending ACK\n");//SEND ACK
+        pkt = make_packet(con, NULL, 0, con->last_ack, con->last_ack, 0, ACK);
+        sendto(con->sfd, pkt, pkt->hdr.plen + C_PADDING, 0, con->serv_info.ai_addr, con->serv_info.ai_addrlen);
+        break;
+        //ERROR
+        default: break;
+    }
+    
     for(;;) { 
         // check if we're quiting...
         pthread_mutex_lock(&(con->closing_lock));
@@ -161,6 +207,8 @@ void *main_loop(void *con_info) {
             pthread_cond_signal(&(con->recv_wait));
         }
     }
+
+    //TEARDOWN GOES HERE
 
     // close out.
     // ci_close should already have handled closing the socket and freeing info

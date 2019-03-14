@@ -53,6 +53,7 @@ typedef struct {
     uint32_t last_ack;                       // window information
     uint32_t last_seq;                       // last ack number received and last sequence number sent
 	
+    int serverClient;
 } ci_conn_t;
 
 #define LISTEN 0

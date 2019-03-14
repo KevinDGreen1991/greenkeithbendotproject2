@@ -21,6 +21,8 @@ int ci_socket(int type, ci_conn_t *con, char *ip) {
     con->last_ack = 0;
     con->last_seq = 0;
     
+    con->serverClient = type;
+
     switch(type) {
         case LISTEN:
             memset(&hints, 0, sizeof(hints));
