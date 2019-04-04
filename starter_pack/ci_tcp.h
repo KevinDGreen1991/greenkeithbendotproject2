@@ -20,6 +20,7 @@
 
 // it's over 9000.
 #define PORT "9001" 
+
 // so the network does not split up our packets, avoid going over the typical 1440 bytes
 // we use 1337 because we're elite
 #define MAX_DATA 1337
@@ -27,8 +28,9 @@
 #define TIMEOUT_SEC_DEFAULT 1
 #define TIMEOUT_MICROSEC_DEFAULT 0
 
-typedef struct {
-	int sfd;                            // socket file descriptor
+typedef struct
+{
+    int sfd;                            // socket file descriptor
     struct sockaddr_in conn;
     struct addrinfo serv_info;
 
@@ -52,23 +54,24 @@ typedef struct {
     pthread_mutex_t ack_lock;
     uint32_t last_ack;                       // window information
     uint32_t last_seq;                       // last ack number received and last sequence number sent
-	
+    
+    int serverClient;
 } ci_conn_t;
 
 #define LISTEN 0
 #define CONNECT 1
 
 // API calls for developers using our version of TCP
-int ci_socket(int type, ci_conn_t *con, char *ip);
-int ci_send(ci_conn_t *con, char *buffer, int len);
-int ci_recv(ci_conn_t *con, char *dest, int len, int wait);
-int ci_close(ci_conn_t *con);
+int ci_socket( int type, ci_conn_t *con, char *ip );
+int ci_send( ci_conn_t *con, char *buffer, int len );
+int ci_recv( ci_conn_t *con, char *dest, int len, int wait );
+int ci_close( ci_conn_t *con );
 
 // Back end "hidden" information the developers do not see
-void print_packet(ci_packet_t *pkt);
-void *main_loop(void *con_info);
-void recv_data(ci_conn_t *con, int wait, int timeout);
-void send_data(ci_conn_t *con, char *data, int len);
+void print_packet( ci_packet_t *pkt );
+void *main_loop( void *con_info );
+void recv_data( ci_conn_t *con, int wait, int timeout );
+void send_data( ci_conn_t *con, char *data, int len );
 
 
 #endif
