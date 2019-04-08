@@ -1,6 +1,7 @@
 #include "ci_tcp.h"
 #include "ci_packet.h"
 
+int roundtriptime = 0;
 // use this for debugging purpsoes.
 void print_packet(ci_packet_t *pkt) {
     printf("ident: 0x%x" PRIu16 "\n",pkt->hdr.identifier);
@@ -36,13 +37,34 @@ ci_packet_t *make_packet(ci_conn_t *con, char *data, int len, uint32_t seq, uint
     return pkt;
 }
 
+int roundtrip( clock_t startTime, clock_t endTime)
+{
+    clock_t Latesttime = endTime - startTime;
+    int Alpha = 1;
+    if(roundtriptime == 0)
+    {
+        roundtriptime = Latesttime; 
+    }
+    else
+    {
+    
+    roundtriptime = (Alpha * roundtriptime) +  ((1 - Alpha) * Latesttime);
+
+    }
+}
+
+
+
 void send_data(ci_conn_t *con, char *data, int len) {
     ci_packet_t *pkt;
     while(len > 0) {
         pkt = make_packet(con, data, len, con->last_ack, con->last_ack, 0, 0);
         // send the packet itself.
+        clock_t startTime = clock();
         sendto(con->sfd, pkt, pkt->hdr.plen + C_PADDING, 0, con->serv_info.ai_addr, con->serv_info.ai_addrlen);
         recv_data(con, 0, 1); // hoping to get an ack, timeout otherwise
+        clock_t endTime = clock();
+        roundtrip(startTime,endTime);
 
         len -= len;
     }
@@ -57,9 +79,16 @@ void recv_data(ci_conn_t *con, int wait, int timeout) {
     // See UNIX Networking Book for details Chapter 14 section 2
     fd_set afd; // timeout if no acknowledgement
     struct timeval timeout_time;
+    if (roundtrip > 0)
+    {
+    timeout_time.tv_sec = roundtriptime;
+    timeout_time.tv_usec = roundtriptime * 1000;
+    }
+    else
+    {
     timeout_time.tv_sec = TIMEOUT_SEC_DEFAULT;
     timeout_time.tv_usec = TIMEOUT_MICROSEC_DEFAULT;
-
+    }
     pthread_mutex_lock(&(con->recv_lock));
 
     // just take a peeksy of the recvfrom buffer
