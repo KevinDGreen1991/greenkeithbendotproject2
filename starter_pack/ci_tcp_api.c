@@ -5,6 +5,7 @@ int ci_socket(int type, ci_conn_t *con, char *ip) {
     struct addrinfo *servinfo, *p, hints;
     struct sockaddr_in myaddr;
 
+
     // initial data and initialize mutexes
     con->closing = 0;
     con->send_buffer_len = 0;
@@ -21,6 +22,7 @@ int ci_socket(int type, ci_conn_t *con, char *ip) {
     con->last_ack = 0;
     con->last_seq = 0;
     
+
     con->serverClient = type;
 
     switch(type) {
